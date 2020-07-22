@@ -14,7 +14,7 @@ You can get your user ID here https://developer.microsoft.com/en-us/graph/graph-
 
 ## Installation
 
-Edit the App.config file and enter the 4 values
+Edit the App.config file and edit the 4 values
 
 clientID = "value from clientID after register app"<br />
 userID = "*optional - add only if you register an app in a different tenant"<br />
