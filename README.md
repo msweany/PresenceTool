@@ -16,7 +16,7 @@ You can get your user ID here https://developer.microsoft.com/en-us/graph/graph-
 
 Edit the App.config file and enter the 4 values
 
-clientID = <value from clientID after register app>
-userID = *optional<add only if you register an app in a different tenant>
-apiPath = <path to local API that you will pass your status to via GET>
-timerSeconds = <how often to query the graph API>
+clientID = "value from clientID after register app"
+userID = "*optional - add only if you register an app in a different tenant"
+apiPath = "path to local API that you will pass your status to via GET"
+timerSeconds = "how often to query the graph API"
