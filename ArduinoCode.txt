@@ -1,0 +1,195 @@
+#include <ESP8266WiFi.h>
+
+const int redPin = 2; //led pin - D4
+const int bluePin = 4; //led pin - D2
+const int greenPin = 5; //led pin - D1
+int color = 0;
+
+WiFiServer server(53253); //This is the port to listen. 
+WiFiClient client;
+
+const char* SSID = "your ssid";
+const char* PASS = "your ssid password";
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(redPin, OUTPUT);
+  pinMode(bluePin, OUTPUT);
+  pinMode(greenPin, OUTPUT);
+  delay(50);
+
+  Serial.println();
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(SSID);
+
+  WiFi.begin(SSID, PASS);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println();
+  Serial.println("WiFi connected");
+  
+  //Start the server
+  server.begin();
+  Serial.println("Server started");
+
+  //Print the IP Address
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.localIP());
+  delay(500);
+}
+
+void loop() 
+{
+  client = server.available();
+  if (client)  // if you get a client
+  {
+    char getLine[128];
+    int i = 0;
+    bool getLineFound = false;
+    bool currentLineIsBlank = true;
+
+    Serial.println("");
+    Serial.println("new client");
+
+    while (client.connected()) // loop while the client's connected
+    {
+      if (client.available()) // if there's bytes to read from the client
+      {
+        char c = client.read(); // read 1 byte from client
+        Serial.print(c);
+
+        if (!getLineFound && i < sizeof(getLine))
+        {
+          //save the char to getLine
+          getLine[i] = c;
+          i++;
+        }
+        
+         // Request end: Now responds to it
+        if (c == '\n' && currentLineIsBlank) // respond to client only after last line is received, last line is blank and ends with \n
+        {
+          ProcessRequest(getLine);
+          break;
+        }
+
+        if (c == '\n') // end of the line, next char read will be a new line
+        {
+          if (!getLineFound) //the GET line is the first line from the client, save it for later
+          {
+            getLineFound = true;
+
+            //strip off the HTTP/1.1 from the end of the getLine
+            const char *ptr = strstr(getLine, "HTTP/1.1");
+            if (ptr)
+              getLine[ptr - getLine - 1] = '\0';
+          }
+
+          currentLineIsBlank = true;
+        }
+        else if (c != '\r') //text char received
+        {
+          currentLineIsBlank = false;
+        }
+      } //end if (client.available())
+    } //end while (client.connected())
+
+
+    // close the connection
+    delay(100); //allow client to receive the data
+    client.stop();
+    Serial.println("Client disconnected");
+  } 
+}
+
+void ledGreen(WiFiClient& client){
+  client.println("HTTP/1.1 200 OK");
+  client.println("Access-Control-Allow-Origin: *");
+  client.println("Content-Type: application/json");
+  client.println("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
+  client.println("Expires: Sat, 26 Jul 1997 05:00:00 GMT"); 
+  client.println("Connection: keep-alive\r\n"); 
+  digitalWrite(redPin, LOW);
+  digitalWrite(bluePin, LOW);
+  digitalWrite(greenPin, HIGH);
+  color = 1;
+  client.println("{ \"status\": \"Green\" }");
+}
+
+void ledRed(WiFiClient& client){
+  client.println("HTTP/1.1 200 OK");
+  client.println("Access-Control-Allow-Origin: *");
+  client.println("Content-Type: application/json");
+  client.println("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
+  client.println("Expires: Sat, 26 Jul 1997 05:00:00 GMT"); 
+  client.println("Connection: keep-alive\r\n"); 
+  digitalWrite(redPin, HIGH);
+  digitalWrite(bluePin, LOW);
+  digitalWrite(greenPin, LOW);
+  color = 3;
+  client.println("{ \"status\": \"Red\" }");
+}
+
+void ledBlue(WiFiClient& client){
+  client.println("HTTP/1.1 200 OK");
+  client.println("Access-Control-Allow-Origin: *");
+  client.println("Content-Type: application/json");
+  client.println("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
+  client.println("Expires: Sat, 26 Jul 1997 05:00:00 GMT"); 
+  client.println("Connection: keep-alive\r\n"); 
+  digitalWrite(redPin, LOW);
+  digitalWrite(bluePin, HIGH);
+  digitalWrite(greenPin, LOW);
+  color = 2;
+  client.println("{ \"status\": \"Blue\" }");
+}
+
+void ledOff(WiFiClient& client){
+  client.println("HTTP/1.1 200 OK");
+  client.println("Access-Control-Allow-Origin: *");
+  client.println("Content-Type: application/json");
+  client.println("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
+  client.println("Expires: Sat, 26 Jul 1997 05:00:00 GMT"); 
+  client.println("Connection: keep-alive\r\n"); 
+  digitalWrite(redPin, LOW);
+  digitalWrite(bluePin, LOW);
+  digitalWrite(greenPin, LOW);
+  color = 0;
+  client.println("{ \"status\": \"Off\" }");
+}
+
+void ledStatus(WiFiClient& client){
+  client.println("HTTP/1.1 200 OK");
+  client.println("Access-Control-Allow-Origin: *");
+  client.println("Content-Type: application/json");
+  client.println("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
+  client.println("Expires: Sat, 26 Jul 1997 05:00:00 GMT"); 
+  client.println("Connection: keep-alive\r\n"); 
+  String start = "{ \"status\": ";
+  String end = " }";
+  String show = start + color + end;
+  client.println(show);
+}
+
+void ProcessRequest(char* getLine){
+  if (strstr(getLine, "GET /8675309") != NULL){
+    if (strstr(getLine, "GET /8675309/InACall") != NULL){
+      ledRed(client);
+    }else if (strstr(getLine, "GET /8675309/DoNotDisturb") != NULL){
+      ledRed(client);
+    }else if (strstr(getLine, "GET /8675309/Busy") != NULL){
+      ledBlue(client);
+    }else if (strstr(getLine, "GET /8675309/InAConferenceCall") != NULL){
+      ledBlue(client);
+    }else if (strstr(getLine, "GET /8675309/Available") != NULL){
+      ledGreen(client);
+    }else if (strstr(getLine, "GET /8675309/status") != NULL){
+      ledStatus(client);
+    }else{
+      ledOff(client);
+    }
+  }
+}
